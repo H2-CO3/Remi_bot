@@ -34,7 +34,15 @@ export class PuppeteerBaseScraper {
           '--disable-extensions',
           '--disable-default-apps',
           '--disable-web-security',
-          '--disable-features=VizDisplayCompositor'
+          '--disable-features=VizDisplayCompositor',
+          // Optimisations spécifiques Raspberry Pi
+          '--memory-pressure-off',
+          '--max-old-space-size=512',
+          '--disable-background-networking',
+          '--disable-sync',
+          '--disable-notifications',
+          '--disable-plugins',
+          '--disable-java'
         ]
       };
       
@@ -66,6 +74,10 @@ export class PuppeteerBaseScraper {
       const browser = await this.initBrowser();
       page = await browser.newPage();
       
+      // Timeout par défaut plus élevé pour Raspberry Pi
+      page.setDefaultNavigationTimeout(90000); // 90 secondes
+      page.setDefaultTimeout(60000); // 60 secondes pour les sélecteurs
+      
       // Configuration via le service centralisé
       const { HttpHeadersService } = await import('../utils/http-headers.js');
       await HttpHeadersService.configurePuppeteerPage(page, this.name);
@@ -73,10 +85,10 @@ export class PuppeteerBaseScraper {
       const url = this.buildSearchUrl(searchTerm);
       console.log(`📡 Puppeteer URL: ${url}`);
       
-      // Navigate to page
+      // Navigate to page - Timeouts augmentés pour Raspberry Pi
       await page.goto(url, { 
         waitUntil: 'networkidle2',
-        timeout: 30000
+        timeout: 60000 // 60 secondes pour RPi
       });
       
       // Wait for content to load

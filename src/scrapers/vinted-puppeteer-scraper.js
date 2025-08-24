@@ -27,20 +27,42 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
     try {
       console.log(`⏳ Waiting for Vinted content to load...`);
       
-      // Wait for either items to appear or "no results" message
+      // Stratégie multiple pour attendre le contenu Vinted
       await Promise.race([
-        page.waitForSelector('.feed-grid__item', { timeout: 15000 }),
-        page.waitForSelector('[data-testid="no-results"]', { timeout: 15000 }),
-        page.waitForSelector('.catalog-item', { timeout: 15000 }) // Fallback selector
+        // Sélecteurs principaux avec timeout élevé
+        page.waitForSelector('.feed-grid__item', { timeout: 60000 }),
+        page.waitForSelector('[data-testid="no-results"]', { timeout: 60000 }),
+        page.waitForSelector('.catalog-item', { timeout: 60000 }),
+        // Sélecteurs de fallback
+        page.waitForSelector('.ItemBox_overlay__1kNfX', { timeout: 60000 }),
+        page.waitForSelector('[class*="ItemBox"]', { timeout: 60000 })
       ]);
       
-      // Additional wait to ensure all items are loaded
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Attente supplémentaire pour le lazy loading
+      await new Promise(resolve => setTimeout(resolve, 4000));
       
       console.log(`✅ Vinted content loaded`);
     } catch (error) {
       console.warn(`⚠️ Timeout waiting for Vinted content, proceeding anyway`);
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Final fallback
+      
+      // En cas d'échec, essayer de scroll pour déclencher le lazy loading
+      try {
+        await page.evaluate(() => {
+          window.scrollTo(0, document.body.scrollHeight / 2);
+        });
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Deuxième tentative avec timeout réduit
+        await Promise.race([
+          page.waitForSelector('.feed-grid__item', { timeout: 15000 }),
+          page.waitForSelector('.catalog-item', { timeout: 15000 }),
+          page.waitForSelector('[class*="ItemBox"]', { timeout: 15000 })
+        ]);
+        console.log(`✅ Vinted content loaded after scroll`);
+      } catch (secondError) {
+        console.warn(`⚠️ Final fallback - proceeding with whatever content is available`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
     }
   }
 
