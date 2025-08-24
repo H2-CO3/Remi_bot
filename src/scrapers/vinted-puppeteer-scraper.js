@@ -15,6 +15,82 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
     };
   }
 
+  // Override pour diagnostiquer les problèmes Vinted sur RPi
+  async scrape(searchTerm) {
+    let page = null;
+    try {
+      console.log(`🔍 [VINTED DEBUG] Starting Vinted scrape for: ${searchTerm}`);
+      
+      const browser = await this.initBrowser();
+      page = await browser.newPage();
+      
+      // DEBUG: Mode non-headless pour voir ce qui se passe
+      console.log(`🔍 [VINTED DEBUG] Browser launched, navigating...`);
+      
+      const url = this.buildSearchUrl(searchTerm);
+      console.log(`📡 [VINTED DEBUG] URL: ${url}`);
+      
+      // TEST 1: DOMContentLoaded au lieu de NetworkIdle2
+      console.log(`⏳ [VINTED DEBUG] Navigation avec DOMContentLoaded...`);
+      await page.goto(url, { 
+        waitUntil: 'domcontentloaded',
+        timeout: 60000
+      });
+      
+      console.log(`✅ [VINTED DEBUG] DOMContentLoaded terminé, attente 5s pour JS...`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // TEST 2: Vérifier le contenu de la page
+      const title = await page.title();
+      console.log(`📄 [VINTED DEBUG] Page title: ${title}`);
+      
+      // TEST 3: Chercher des modales/bannières
+      const modals = await page.$$('div[class*="modal"], div[class*="cookie"], div[class*="consent"], div[class*="gdpr"]');
+      console.log(`🍪 [VINTED DEBUG] Modales détectées: ${modals.length}`);
+      
+      if (modals.length > 0) {
+        console.log(`🍪 [VINTED DEBUG] Tentative de fermeture des modales...`);
+        // Essayer de fermer les modales
+        await page.evaluate(() => {
+          const buttons = document.querySelectorAll('button[class*="accept"], button[class*="close"], button[class*="dismiss"], .close-btn, [data-testid*="accept"]');
+          buttons.forEach(btn => btn.click());
+        });
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      
+      // TEST 4: Attendre le contenu Vinted
+      await this.waitForContent(page);
+      
+      // Récupérer et parser les résultats
+      const html = await page.content();
+      console.log(`📏 [VINTED DEBUG] HTML length: ${html.length} chars`);
+      
+      const allResults = await this.parseResults(html, searchTerm);
+      console.log(`📦 [VINTED DEBUG] Raw results found: ${allResults.length}`);
+      
+      return allResults;
+      
+    } catch (error) {
+      console.error(`❌ [VINTED DEBUG] Error:`, error.message);
+      
+      if (page) {
+        try {
+          const title = await page.title();
+          const url = await page.url();
+          console.error(`❌ [VINTED DEBUG] Page state - Title: ${title}, URL: ${url}`);
+        } catch (debugError) {
+          console.error(`❌ [VINTED DEBUG] Cannot get page state`);
+        }
+      }
+      
+      throw error;
+    } finally {
+      if (page) {
+        await page.close();
+      }
+    }
+  }
+
   // Filtrer les résultats pour éviter le flood et garder seulement les items pertinents
   filterRelevantResults(results, searchTerm) {
     console.log(`🔍 Filtrage Vinted simple pour: "${searchTerm}"`);
