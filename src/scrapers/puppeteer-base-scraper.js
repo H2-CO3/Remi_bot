@@ -17,6 +17,7 @@ export class PuppeteerBaseScraper {
       const isProduction = process.env.NODE_ENV === 'production';
       
       const browserOptions = {
+        executablePath: '/usr/bin/chromium', // Pointer vers Chromium système
         headless: true,
         args: [
           '--no-sandbox',
@@ -25,6 +26,7 @@ export class PuppeteerBaseScraper {
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
           '--no-zygote',
+          '--single-process',
           '--disable-gpu',
           '--disable-background-timer-throttling',
           '--disable-backgrounding-occluded-windows',
@@ -74,9 +76,9 @@ export class PuppeteerBaseScraper {
       const browser = await this.initBrowser();
       page = await browser.newPage();
       
-      // Timeout par défaut plus élevé pour Raspberry Pi
-      page.setDefaultNavigationTimeout(90000); // 90 secondes
-      page.setDefaultTimeout(60000); // 60 secondes pour les sélecteurs
+      // Timeout par défaut ultra-élevé pour Raspberry Pi + Vinted
+      page.setDefaultNavigationTimeout(180000); // 3 minutes pour navigation
+      page.setDefaultTimeout(120000); // 2 minutes pour les sélecteurs
       
       // Configuration via le service centralisé
       const { HttpHeadersService } = await import('../utils/http-headers.js');
@@ -85,11 +87,23 @@ export class PuppeteerBaseScraper {
       const url = this.buildSearchUrl(searchTerm);
       console.log(`📡 Puppeteer URL: ${url}`);
       
-      // Navigate to page - Timeouts augmentés pour Raspberry Pi
-      await page.goto(url, { 
-        waitUntil: 'networkidle2',
-        timeout: 60000 // 60 secondes pour RPi
-      });
+      // Navigate to page - Stratégie progressive pour RPi + Vinted
+      try {
+        // Première tentative avec networkidle2 (plus rapide)
+        await page.goto(url, { 
+          waitUntil: 'networkidle2',
+          timeout: 120000 // 2 minutes
+        });
+      } catch (timeoutError) {
+        console.warn(`⚠️ Timeout avec networkidle2, tentative avec domcontentloaded...`);
+        // Deuxième tentative avec domcontentloaded (moins strict)
+        await page.goto(url, { 
+          waitUntil: 'domcontentloaded',
+          timeout: 60000 // 1 minute
+        });
+        // Attente manuelle pour le JS
+        await new Promise(resolve => setTimeout(resolve, 10000));
+      }
       
       // Wait for content to load
       await this.waitForContent(page);
