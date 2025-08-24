@@ -1,0 +1,9 @@
+  LOCAL : 
+  - Username : admin
+  - Password : BotRemi2025!SecureAdm1n$
+
+
+  PROD : 
+  - username : admin
+  - password : djUIEZ7825èdn!fdkjslz78klureaKLEIU67anazejklSKJHE7
+  - Hash: $2b$12$2LVIcfqHqfMKU3OrBOWx2ukYfoobJg3MaxOyWH3gBcPkKss/8f7gK

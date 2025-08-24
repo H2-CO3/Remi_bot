@@ -1,0 +1,26 @@
+# Environnement
+NODE_ENV=production
+FORCE_SECURE_COOKIES=false
+
+DB_HOST=localhost
+DB_USER=botremi
+DB_PASSWORD="BotRemi2025!DbSecure#Pass"
+DB_NAME=remi_bot
+DB_PORT=3306
+
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/1384471385241550929/4yWJcxr4UqKXUgJW9JNR4zZNQYLjGnv2nLRXvem3T9CInBfvz2menwvADwYko1jKoOe9
+DISCORD_ENABLED=true
+DISCORD_MENTION=<@310835537067900943>
+
+# Scraping
+USER_AGENT_ROTATION=true
+SCRAPING_DELAY_MIN=2000
+SCRAPING_DELAY_MAX=5000
+
+# Session et sécurité
+SESSION_SECRET='BotRemi2025!Session$Secret#Ultra$Strong&Random123456789'
+ADMIN_PASSWORD='djUIEZ7825èdn!fdkjslz78klure$$anazejklSKJHE7'
+
+# Logs
+LOG_LEVEL=info
+LOG_FILE=logs/bot-remi.log

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Remi - Pokemon Card Scraper 🤖</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="pokemon-ball">🔴</span>
+                    Bot Remi
+                    <span class="subtitle">Pokemon Card Scraper</span>
+                </h1>
+                <div class="system-status">
+                    <div class="status-indicator" id="connectionStatus">
+                        <div class="status-dot offline"></div>
+                        <span>WebSocket</span>
+                    </div>
+                    <div class="status-indicator" id="databaseStatus">
+                        <div class="status-dot unknown"></div>
+                        <span>Base de données</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            
+            <!-- Test Discord Section -->
+            <section class="card test-section">
+                <div class="card-header">
+                    <h2>🧪 Test Discord</h2>
+                    <p>Testez la connexion Discord avec un message "coucou"</p>
+                </div>
+                <div class="card-body">
+                    <button id="testDiscordBtn" class="btn btn-secondary">
+                        <span class="btn-icon">💬</span>
+                        Tester Discord
+                    </button>
+                    <div id="discordTestResult" class="result-message"></div>
+                </div>
+            </section>
+
+            <!-- Search Section -->
+            <section class="card search-section">
+                <div class="card-header">
+                    <h2>🔍 Recherche de Cartes</h2>
+                    <p>Recherchez des bonnes affaires sur vos cartes Pokemon préférées</p>
+                </div>
+                <div class="card-body">
+                    <form id="searchForm" class="search-form">
+                        <div class="form-group">
+                            <label for="cardReference">Référence de la carte</label>
+                            <input 
+                                type="text" 
+                                id="cardReference" 
+                                name="cardReference" 
+                                placeholder="ex: Dracaufeu ex 199/165"
+                                required
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label for="maxPrice">Prix maximum (€)</label>
+                            <input 
+                                type="number" 
+                                id="maxPrice" 
+                                name="maxPrice" 
+                                min="1" 
+                                step="0.01"
+                                placeholder="250"
+                                required
+                            >
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="btn-icon">🚀</span>
+                            Lancer la recherche
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Progress Section -->
+            <section class="card progress-section" id="progressSection" style="display: none;">
+                <div class="card-header">
+                    <h2>⏳ Progression</h2>
+                </div>
+                <div class="card-body">
+                    <div class="progress-container">
+                        <div class="progress-item" data-site="vinted">
+                            <span class="site-name">Vinted</span>
+                            <div class="progress-status">En attente...</div>
+                        </div>
+                        <div class="progress-item" data-site="ebay">
+                            <span class="site-name">eBay</span>
+                            <div class="progress-status">En attente...</div>
+                        </div>
+                        <!-- CardMarket temporairement désactivé -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="card results-section" id="resultsSection" style="display: none;">
+                <div class="card-header">
+                    <h2>🎯 Résultats de recherche</h2>
+                    <div class="results-summary" id="resultsSummary"></div>
+                </div>
+                <div class="card-body">
+                    <!-- Tabs for filtering by site (simplifié) -->
+                    <div class="results-tabs" id="resultsTabs">
+                        <button class="tab-button active" data-site="all">
+                            <span class="tab-icon">🎯</span>
+                            Tous les résultats <span class="tab-count">(0)</span>
+                        </button>
+                        <button class="tab-button" data-site="vinted">
+                            <span class="tab-icon">👕</span>
+                            Vinted <span class="tab-count">(0)</span>
+                        </button>
+                        <button class="tab-button" data-site="ebay">
+                            <span class="tab-icon">🛒</span>
+                            eBay <span class="tab-count">(0)</span>
+                        </button>
+                        <!-- CardMarket temporairement désactivé -->
+                    </div>
+                    
+                    <!-- Results container -->
+                    <div id="resultsContainer" class="results-container">
+                        <!-- Results will be inserted here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Errors Section -->
+            <section class="card errors-section" id="errorsSection" style="display: none;">
+                <div class="card-header">
+                    <h2>⚠️ Erreurs de Scraping</h2>
+                </div>
+                <div class="card-body">
+                    <div id="errorsContainer" class="errors-container">
+                        <!-- Errors will be inserted here -->
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2024 Bot Remi - Développé avec ❤️ pour la communauté Pokemon</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

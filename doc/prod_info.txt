@@ -1,0 +1,9 @@
+db_user : fore1420_remi 
+db_pass: DJKRiuo896dez!!?dlkap??àalkezER24
+
+
+  PROD : 
+  - username : admin
+  - password : AdminBot2025!
+  - Hash: $2b$12$nqSoqbSj16mn1sah4araue6BwfvpIlbe5RLhrXanZA1ZARB3tDiJu
+
