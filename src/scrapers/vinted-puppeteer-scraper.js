@@ -40,14 +40,14 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
       
       // Gestion de la bannière de consentement RGPD Vinted (solution ChatGPT)
       try {
-        console.log(`🍪 [VINTED DEBUG] Recherche bannière de consentement (10s max)...`);
+        console.log(`🍪 [VINTED DEBUG] Recherche bannière de consentement (30s max)...`);
         
-        // Attendre le bouton "Accepter tout" spécifique à Vinted (10s timeout)
-        await page.waitForSelector('button[data-testid="TcfAccept"]', { timeout: 10000 });
+        // Attendre le bouton "Accepter tout" spécifique à Vinted (30s timeout)
+        await page.waitForSelector('#onetrust-accept-btn-handler', { timeout: 30000 });
         console.log(`🍪 [VINTED DEBUG] Bannière de consentement détectée, clic sur "Accepter tout"`);
         
         // Cliquer sur "Accepter tout"
-        await page.click('button[data-testid="TcfAccept"]');
+        await page.click('#onetrust-accept-btn-handler');
         console.log(`✅ [VINTED DEBUG] Bannière de consentement fermée avec succès`);
         
         // Attendre que la bannière disparaisse
