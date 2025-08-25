@@ -24,18 +24,7 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
       const browser = await this.initBrowser();
       page = await browser.newPage();
       
-      // Définir des cookies préventifs pour éviter la page de confidentialité
-      await page.setCookie({
-        name: 'vinted_gdpr_consent',
-        value: 'accepted',
-        domain: '.vinted.fr'
-      }, {
-        name: 'OptanonAlertBoxClosed', 
-        value: new Date().toISOString(),
-        domain: '.vinted.fr'
-      });
-      
-      console.log(`🔍 [VINTED DEBUG] Browser launched, cookies set, navigating...`);
+      console.log(`🔍 [VINTED DEBUG] Browser launched, navigating...`);
       
       const url = this.buildSearchUrl(searchTerm);
       console.log(`📡 [VINTED DEBUG] URL: ${url}`);
@@ -47,54 +36,33 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
         timeout: 60000
       });
       
-      console.log(`✅ [VINTED DEBUG] DOMContentLoaded terminé, attente 5s pour JS...`);
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      console.log(`✅ [VINTED DEBUG] DOMContentLoaded terminé`);
       
-      // TEST 2: Vérifier le contenu de la page
-      const title = await page.title();
-      console.log(`📄 [VINTED DEBUG] Page title: ${title}`);
-      
-      // TEST 3: Gestion agressive des modales RGPD/cookies
-      console.log(`🍪 [VINTED DEBUG] Recherche et traitement des modales...`);
-      
-      // Attendre que la modale apparaisse
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Stratégie multiple pour fermer les modales Vinted
+      // Gestion de la bannière de consentement RGPD Vinted (solution ChatGPT)
       try {
-        // 1. Boutons d'acceptation génériques
-        const acceptButtons = await page.$$('button[id*="onetrust"], button[class*="accept"], button[class*="consent"], [data-testid*="accept"], button[title*="Accept"]');
-        console.log(`🍪 [VINTED DEBUG] Boutons d'acceptation trouvés: ${acceptButtons.length}`);
+        console.log(`🍪 [VINTED DEBUG] Recherche bannière de consentement (10s max)...`);
         
-        for (const button of acceptButtons) {
-          try {
-            await button.click();
-            console.log(`🍪 [VINTED DEBUG] Clique sur bouton d'acceptation`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } catch (e) {
-            // Ignorer si le bouton n'est plus cliquable
-          }
-        }
+        // Attendre le bouton "Accepter tout" spécifique à Vinted (10s timeout)
+        await page.waitForSelector('button[data-testid="TcfAccept"]', { timeout: 10000 });
+        console.log(`🍪 [VINTED DEBUG] Bannière de consentement détectée, clic sur "Accepter tout"`);
         
-        // 2. Si on est encore sur la page de confidentialité, forcer la navigation
-        const currentUrl = await page.url();
-        if (currentUrl.includes('privacy') || currentUrl.includes('consent') || currentUrl.includes('gdpr')) {
-          console.log(`🍪 [VINTED DEBUG] Toujours sur page de confidentialité, redirection forcée...`);
-          // Retourner à l'URL de recherche
-          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        }
+        // Cliquer sur "Accepter tout"
+        await page.click('button[data-testid="TcfAccept"]');
+        console.log(`✅ [VINTED DEBUG] Bannière de consentement fermée avec succès`);
         
-        // 3. Dernier recours : simulation de touches
-        await page.keyboard.press('Tab'); // Naviguer vers le bouton
-        await page.keyboard.press('Enter'); // Accepter
+        // Attendre que la bannière disparaisse
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-      } catch (modalError) {
-        console.warn(`⚠️ [VINTED DEBUG] Erreur gestion modales:`, modalError.message);
+      } catch (consentError) {
+        // Si pas de bannière ou timeout, continuer normalement
+        console.log(`🍪 [VINTED DEBUG] Pas de bannière de consentement détectée (normal si déjà acceptée)`);
       }
       
-      // TEST 4: Attendre le contenu Vinted
+      // Attendre un peu pour que le JavaScript se charge après fermeture de la bannière
+      console.log(`⏳ [VINTED DEBUG] Attente chargement JS (3s)...`);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Attendre le contenu Vinted
       await this.waitForContent(page);
       
       // Récupérer et parser les résultats
@@ -102,7 +70,7 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
       console.log(`📏 [VINTED DEBUG] HTML length: ${html.length} chars`);
       
       const allResults = await this.parseResults(html, searchTerm);
-      console.log(`📦 [VINTED DEBUG] Raw results found: ${allResults.length}`);
+      console.log(`📦 [VINTED DEBUG] Résultats trouvés: ${allResults.length}`);
       
       return allResults;
       
