@@ -94,7 +94,9 @@ export class AutoScrapingService {
                 try {
                     
                     // SCRAPER LE SITE
+                    console.log(`🔍 [AutoScraping] Starting scrape for ${siteName}`);
                     const rawResults = await scraper.scrape(searchTerm);
+                    console.log(`✅ [AutoScraping] ${siteName} returned ${rawResults.length} results`);
                     
                     siteResults = rawResults.length;
                     totalResults += siteResults;
@@ -111,15 +113,22 @@ export class AutoScrapingService {
                     }
                     
                     // TRAITEMENT RÉSULTAT PAR RÉSULTAT - TEMPS RÉEL
+                    console.log(`🔄 [AutoScraping] Processing ${rawResults.length} results for ${siteName}`);
                     for (const product of rawResults) {
+                        console.log(`🔍 [AutoScraping] Processing:`, { title: product.title, price: product.price, link: product.link?.substring(0, 50) + '...' });
                         const price = parseFloat(product.price);
+                        console.log(`💰 [AutoScraping] Parsed price: ${price} (original: ${product.price})`);
                         
                         // VÉRIFICATION PRIX
+                        console.log(`🔍 [AutoScraping] Price check: ${price}€ vs max ${maxPrice}€`);
                         if (price <= maxPrice) {
+                            console.log(`✅ [AutoScraping] Price OK! Checking anti-duplicate...`);
                             // VÉRIFICATION ANTI-DOUBLON
                             const alreadySent = await this.isAlertAlreadySent(product.link);
+                            console.log(`🔍 [AutoScraping] Already sent check: ${alreadySent}`);
                             
                             if (!alreadySent) {
+                                console.log(`🚨 [AutoScraping] SENDING ALERT for: ${product.title} - ${price}€`);
                                 
                                 // CALLBACK TEMPS RÉEL - ENVOI EN COURS
                                 progressCallback?.({
@@ -166,8 +175,10 @@ export class AutoScrapingService {
                                 await new Promise(resolve => setTimeout(resolve, 500));
                                 
                             } else {
+                                console.log(`⚠️ [AutoScraping] Alert already sent for: ${product.link?.substring(0, 50)}...`);
                             }
                         } else {
+                            console.log(`❌ [AutoScraping] Price too high: ${price}€ > ${maxPrice}€`);
                         }
                     }
                     
@@ -184,7 +195,8 @@ export class AutoScrapingService {
                     
                     
                 } catch (error) {
-                    console.error(`    ❌ Erreur ${siteName}:`, error.message);
+                    console.error(`❌ [AutoScraping] EXCEPTION in ${siteName}:`, error.message);
+                    console.error(`❌ [AutoScraping] Stack trace:`, error.stack);
                     
                     await this.logScraping('card_scraping', null, siteName, 'error', 0, error.message, Date.now() - startTime);
                     

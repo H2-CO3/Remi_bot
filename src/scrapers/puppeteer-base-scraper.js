@@ -17,7 +17,7 @@ export class PuppeteerBaseScraper {
       const isProduction = process.env.NODE_ENV === 'production';
       
       const browserOptions = {
-        executablePath: '/usr/bin/chromium', // Pointer vers Chromium système 
+        executablePath: 'usr/bin/chromium',
         headless: false, // Mode visuel pour débugger
         args: [
           '--no-sandbox',
