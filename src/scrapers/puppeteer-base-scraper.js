@@ -18,7 +18,7 @@ export class PuppeteerBaseScraper {
       
       const browserOptions = {
         executablePath: '/usr/bin/chromium', // Pointer vers Chromium système 
-        headless: true,
+        headless: false, // Mode visuel pour débugger
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',

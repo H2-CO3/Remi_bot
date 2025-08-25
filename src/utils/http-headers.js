@@ -92,14 +92,14 @@ export class HttpHeadersService {
     // JavaScript enabled mais avec protections
     await page.setJavaScriptEnabled(true);
     
-    // Bloquer certaines ressources pour accélérer
+    // Bloquer seulement les images pour accélérer (garder CSS et fonts pour l'affichage)
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const resourceType = req.resourceType();
-      if (resourceType === 'image' || resourceType === 'stylesheet' || resourceType === 'font') {
-        req.abort();
+      if (resourceType === 'image') {
+        req.abort(); // Bloquer seulement les images
       } else {
-        req.continue();
+        req.continue(); // Garder CSS, fonts, JS, etc.
       }
     });
 
