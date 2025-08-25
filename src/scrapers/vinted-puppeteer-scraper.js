@@ -15,17 +15,14 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
     };
   }
 
-  // Override pour diagnostiquer les problèmes Vinted sur RPi
+  // Override pour injecter les cookies de consentement
   async scrape(searchTerm) {
     let page = null;
     try {
-      console.log(`🔍 [VINTED DEBUG] Starting Vinted scrape for: ${searchTerm}`);
-      
       const browser = await this.initBrowser();
       page = await browser.newPage();
       
       // Définir les cookies de consentement pour bypasser la bannière RGPD
-      console.log(`🍪 [VINTED DEBUG] Setting consent cookies...`);
       await page.setCookie(
         {
           name: 'OptanonAlertBoxClosed',
@@ -64,70 +61,11 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
         }
       );
       
-      console.log(`🔍 [VINTED DEBUG] Browser launched, cookies set, navigating...`);
-      
-      const url = this.buildSearchUrl(searchTerm);
-      console.log(`📡 [VINTED DEBUG] URL: ${url}`);
-      
-      // Navigation avec cookies de consentement (pas de bannière attendue)
-      console.log(`⏳ [VINTED DEBUG] Navigation avec DOMContentLoaded...`);
-      await page.goto(url, { 
-        waitUntil: 'domcontentloaded',
-        timeout: 60000
-      });
-      
-      console.log(`✅ [VINTED DEBUG] Page chargée, vérification si bannière présente...`);
-      
-      // Vérification rapide si bannière (ne devrait pas apparaître avec les cookies)
-      try {
-        await page.waitForSelector('#onetrust-accept-btn-handler', { timeout: 3000 });
-        console.log(`⚠️ [VINTED DEBUG] Bannière encore présente malgré cookies, clic...`);
-        await page.click('#onetrust-accept-btn-handler');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } catch (noBanner) {
-        console.log(`✅ [VINTED DEBUG] Pas de bannière - cookies fonctionnent !`);
-      }
-      
-      // Scroll pour déclencher le lazy loading des résultats Vinted
-      console.log(`📜 [VINTED DEBUG] Scroll pour déclencher le lazy loading...`);
-      await page.evaluate(() => {
-        window.scrollTo(0, 1000); // Scroll plus direct
-      });
-      
-      // Attendre que le contenu se charge
-      console.log(`⏳ [VINTED DEBUG] Attente chargement après scroll (2s)...`);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Attendre le contenu Vinted
-      await this.waitForContent(page);
-      
-      // Récupérer et parser les résultats
-      const html = await page.content();
-      console.log(`📏 [VINTED DEBUG] HTML length: ${html.length} chars`);
-      
-      const allResults = await this.parseResults(html, searchTerm);
-      console.log(`📦 [VINTED DEBUG] Résultats trouvés: ${allResults.length}`);
-      
-      return allResults;
+      // Utiliser la méthode parent pour le scraping normal
+      return await super.scrape(searchTerm);
       
     } catch (error) {
-      console.error(`❌ [VINTED DEBUG] Error:`, error.message);
-      
-      if (page) {
-        try {
-          const title = await page.title();
-          const url = await page.url();
-          console.error(`❌ [VINTED DEBUG] Page state - Title: ${title}, URL: ${url}`);
-        } catch (debugError) {
-          console.error(`❌ [VINTED DEBUG] Cannot get page state`);
-        }
-      }
-      
       throw error;
-    } finally {
-      if (page) {
-        await page.close();
-      }
     }
   }
 

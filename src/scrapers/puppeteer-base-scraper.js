@@ -18,7 +18,7 @@ export class PuppeteerBaseScraper {
       
       const browserOptions = {
         executablePath: '/usr/bin/chromium', // Pointer vers Chromium système
-        headless: false, // DEBUG: Mode non-headless pour diagnostiquer Vinted
+        headless: true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
