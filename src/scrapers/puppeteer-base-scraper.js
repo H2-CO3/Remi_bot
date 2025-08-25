@@ -17,8 +17,8 @@ export class PuppeteerBaseScraper {
       const isProduction = process.env.NODE_ENV === 'production';
       
       const browserOptions = {
-        executablePath: 'usr/bin/chromium',
-        headless: false, // Mode visuel pour débugger
+        executablePath: '/usr/bin/chromium-browser',
+        headless: true, // Mode visuel pour débugger
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -26,7 +26,6 @@ export class PuppeteerBaseScraper {
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
           '--no-zygote',
-          '--single-process',
           '--disable-gpu',
           '--disable-background-timer-throttling',
           '--disable-backgrounding-occluded-windows',
