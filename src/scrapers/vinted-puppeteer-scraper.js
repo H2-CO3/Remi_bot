@@ -15,57 +15,75 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
     };
   }
 
-  // Override pour injecter les cookies de consentement
   async scrape(searchTerm) {
     let page = null;
     try {
       const browser = await this.initBrowser();
       page = await browser.newPage();
       
-      // Définir les cookies de consentement pour bypasser la bannière RGPD
+      // Cookies de consentement optimisés avec dates dynamiques longues
+      const now = new Date();
+      const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+      const currentISOString = now.toISOString();
+      const longDateString = oneYearLater.toISOString();
+      
       await page.setCookie(
         {
           name: 'OptanonAlertBoxClosed',
-          value: '2025-08-25T00:35:38.699Z',
-          domain: '.vinted.fr'
+          value: currentISOString,
+          domain: '.vinted.fr',
+          expires: Math.floor(oneYearLater.getTime() / 1000)
         },
         {
           name: 'OptanonConsent',
-          value: 'isGpcEnabled=1&datestamp=Mon+Aug+25+2025+02%3A35%3A39+GMT%2B0200+(heure+d%E2%80%99%C3%A9t%C3%A9+d%E2%80%99Europe+centrale)&version=202505.2.0&browserGpcFlag=1&isIABGlobal=false&hosts=H4%3A1%2CH525%3A1%2CH613%3A1%2CH627%3A0&groups=C0001%3A1%2CC0002%3A0%2CC0003%3A0%2CC0004%3A0%2CC0005%3A0&genVendors=V2%3A0%2CV1%3A0%2C&intType=2',
-          domain: '.vinted.fr'
+          value: `isGpcEnabled=1&datestamp=${encodeURIComponent(now.toString())}&version=202505.2.0&browserGpcFlag=1&isIABGlobal=false&hosts=H4%3A1%2CH525%3A1%2CH613%3A1&groups=C0001%3A1%2CC0002%3A0%2CC0003%3A0%2CC0004%3A0%2CC0005%3A0&genVendors=V2%3A0%2CV1%3A0%2C&intType=2`,
+          domain: '.vinted.fr',
+          expires: Math.floor(oneYearLater.getTime() / 1000)
         },
         {
           name: 'eupubconsent-v2',
           value: 'CQWs3HAQWs3HAAcABBFRB5FgAAAAAEPgAChQAAAWZABMNCogjLIgBCJQMAIEACgrCACgQBAAAkDRAQAmDApyBgAusJkAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQABgAQBAQAMDAAGACxEAgABAdAxTAggECwASMyqDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRswBBQGaLQXgyfRkaYBg-YJklMgyAJgjIyTYhN-Ew8chRAAAA.YAAACHwAAAAA',
-          domain: '.vinted.fr'
-        },
-        {
-          name: 'OTAdditionalConsentString',
-          value: '1~',
-          domain: '.vinted.fr'
-        },
-        {
-          name: 'cf_clearance',
-          value: 'G1WbbszDiWweJyS3gcucvmNA.8e_BoXJeF2t8RCl6nY-1756082134-1.2.1.1-S68v8.nOL8XNdd.5kYezWOugR_pGh02Qjb4e9ZQzGi',
-          domain: '.vinted.fr'
-        },
-        {
-          name: 'anon_id',
-          value: '8b260db9-1385-405d-b914-09ab2e0bf510',
-          domain: 'www.vinted.fr'
+          domain: '.vinted.fr',
+          expires: Math.floor(oneYearLater.getTime() / 1000)
         },
         {
           name: 'anonymous-locale',
           value: 'fr',
-          domain: 'www.vinted.fr'
+          domain: 'www.vinted.fr',
+          expires: Math.floor(oneYearLater.getTime() / 1000)
         }
       );
       
-      // Utiliser la méthode parent pour le scraping normal
-      return await super.scrape(searchTerm);
+      // Configuration via le service centralisé
+      const { HttpHeadersService } = await import('../utils/http-headers.js');
+      await HttpHeadersService.configurePuppeteerPage(page, this.name);
+      
+      const url = this.buildSearchUrl(searchTerm);
+      
+      // Navigation avec timeout adapté RPi
+      await page.goto(url, { 
+        waitUntil: 'networkidle2',
+        timeout: 120000 // 2 minutes pour RPi
+      });
+      
+      // Attendre le contenu Vinted avec fallback
+      await this.waitForContent(page);
+      
+      // Récupérer et parser les résultats
+      const html = await page.content();
+      const allResults = await this.parseResults(html, searchTerm);
+      
+      // Appliquer le filtrage de pertinence
+      const filteredResults = this.filterRelevantResults(allResults, searchTerm);
+      
+      return filteredResults;
       
     } catch (error) {
       throw error;
+    } finally {
+      if (page) {
+        await page.close();
+      }
     }
   }
 
@@ -79,44 +97,19 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
 
   async waitForContent(page) {
     try {
-      console.log(`⏳ Waiting for Vinted content to load...`);
-      
-      // Stratégie multiple pour attendre le contenu Vinted
+      // Wait for either items to appear or "no results" message
       await Promise.race([
-        // Sélecteurs principaux avec timeout élevé
-        page.waitForSelector('.feed-grid__item', { timeout: 60000 }),
-        page.waitForSelector('[data-testid="no-results"]', { timeout: 60000 }),
-        page.waitForSelector('.catalog-item', { timeout: 60000 }),
-        // Sélecteurs de fallback
-        page.waitForSelector('.ItemBox_overlay__1kNfX', { timeout: 60000 }),
-        page.waitForSelector('[class*="ItemBox"]', { timeout: 60000 })
+        page.waitForSelector('.feed-grid__item', { timeout: 30000 }),
+        page.waitForSelector('[data-testid="no-results"]', { timeout: 30000 }),
+        page.waitForSelector('.catalog-item', { timeout: 30000 }) // Fallback selector
       ]);
       
-      // Attente supplémentaire pour le lazy loading
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      // Additional wait to ensure all items are loaded
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      console.log(`✅ Vinted content loaded`);
     } catch (error) {
       console.warn(`⚠️ Timeout waiting for Vinted content, proceeding anyway`);
-      
-      // En cas d'échec, essayer de scroll pour déclencher le lazy loading
-      try {
-        await page.evaluate(() => {
-          window.scrollTo(0, document.body.scrollHeight / 2);
-        });
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        
-        // Deuxième tentative avec timeout réduit
-        await Promise.race([
-          page.waitForSelector('.feed-grid__item', { timeout: 15000 }),
-          page.waitForSelector('.catalog-item', { timeout: 15000 }),
-          page.waitForSelector('[class*="ItemBox"]', { timeout: 15000 })
-        ]);
-        console.log(`✅ Vinted content loaded after scroll`);
-      } catch (secondError) {
-        console.warn(`⚠️ Final fallback - proceeding with whatever content is available`);
-        await new Promise(resolve => setTimeout(resolve, 5000));
-      }
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Final fallback
     }
   }
 
