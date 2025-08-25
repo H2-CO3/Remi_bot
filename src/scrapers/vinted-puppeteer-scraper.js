@@ -44,14 +44,37 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
         
         // Attendre le bouton "Accepter tout" spécifique à Vinted (30s timeout)
         await page.waitForSelector('#onetrust-accept-btn-handler', { timeout: 30000 });
-        console.log(`🍪 [VINTED DEBUG] Bannière de consentement détectée, clic sur "Accepter tout"`);
+        console.log(`🍪 [VINTED DEBUG] Bannière de consentement détectée`);
         
-        // Cliquer sur "Accepter tout"
-        await page.click('#onetrust-accept-btn-handler');
-        console.log(`✅ [VINTED DEBUG] Bannière de consentement fermée avec succès`);
+        // Attendre que le bouton soit vraiment cliquable
+        await page.waitForSelector('#onetrust-accept-btn-handler:not([disabled])', { timeout: 5000 });
+        console.log(`🍪 [VINTED DEBUG] Bouton prêt, tentative de clic...`);
         
-        // Attendre que la bannière disparaisse
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Essayer plusieurs méthodes de clic
+        try {
+          // Méthode 1: Clic normal
+          await page.click('#onetrust-accept-btn-handler');
+          console.log(`✅ [VINTED DEBUG] Clic normal effectué`);
+        } catch (clickError) {
+          console.log(`⚠️ [VINTED DEBUG] Clic normal échoué, tentative avec evaluate...`);
+          // Méthode 2: Clic via JavaScript
+          await page.evaluate(() => {
+            document.getElementById('onetrust-accept-btn-handler').click();
+          });
+          console.log(`✅ [VINTED DEBUG] Clic JavaScript effectué`);
+        }
+        
+        // Attendre plus longtemps pour voir la bannière disparaître
+        console.log(`⏳ [VINTED DEBUG] Attente disparition bannière (5s)...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Vérifier si la bannière a disparu
+        const bannerStillVisible = await page.$('#onetrust-banner-sdk');
+        if (bannerStillVisible) {
+          console.warn(`⚠️ [VINTED DEBUG] Bannière encore visible après clic`);
+        } else {
+          console.log(`✅ [VINTED DEBUG] Bannière disparue avec succès`);
+        }
         
       } catch (consentError) {
         // Si pas de bannière ou timeout, continuer normalement
