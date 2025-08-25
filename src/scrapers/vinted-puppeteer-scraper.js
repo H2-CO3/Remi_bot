@@ -18,10 +18,16 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
   async scrape(searchTerm) {
     let page = null;
     try {
+      console.log(`🔍 [VINTED] Starting scrape for: ${searchTerm}`);
+      
       const browser = await this.initBrowser();
+      console.log(`✅ [VINTED] Browser initialized successfully`);
+      
       page = await browser.newPage();
+      console.log(`✅ [VINTED] New page created`);
       
       // Cookies de consentement optimisés avec dates dynamiques longues
+      console.log(`🍪 [VINTED] Setting consent cookies...`);
       const now = new Date();
       const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
       const currentISOString = now.toISOString();
@@ -53,32 +59,62 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
           expires: Math.floor(oneYearLater.getTime() / 1000)
         }
       );
+      console.log(`✅ [VINTED] Cookies set successfully`);
       
       // Configuration via le service centralisé
+      console.log(`⚙️ [VINTED] Configuring page headers...`);
       const { HttpHeadersService } = await import('../utils/http-headers.js');
       await HttpHeadersService.configurePuppeteerPage(page, this.name);
+      console.log(`✅ [VINTED] Headers configured`);
       
       const url = this.buildSearchUrl(searchTerm);
+      console.log(`📡 [VINTED] Navigating to URL: ${url}`);
       
       // Navigation avec timeout adapté RPi
+      console.log(`⏳ [VINTED] Starting navigation (up to 2 minutes)...`);
       await page.goto(url, { 
         waitUntil: 'networkidle2',
         timeout: 120000 // 2 minutes pour RPi
       });
+      console.log(`✅ [VINTED] Navigation completed successfully`);
       
       // Attendre le contenu Vinted avec fallback
+      console.log(`⏳ [VINTED] Waiting for content to load...`);
       await this.waitForContent(page);
+      console.log(`✅ [VINTED] Content loaded`);
       
       // Récupérer et parser les résultats
+      console.log(`📄 [VINTED] Getting page content...`);
       const html = await page.content();
+      console.log(`✅ [VINTED] Page content retrieved (${html.length} chars)`);
+      
+      console.log(`🔍 [VINTED] Parsing results...`);
       const allResults = await this.parseResults(html, searchTerm);
+      console.log(`✅ [VINTED] Found ${allResults.length} raw results`);
       
       // Appliquer le filtrage de pertinence
+      console.log(`🎯 [VINTED] Filtering results...`);
       const filteredResults = this.filterRelevantResults(allResults, searchTerm);
+      console.log(`✅ [VINTED] Filtered to ${filteredResults.length} relevant results`);
       
       return filteredResults;
       
     } catch (error) {
+      console.error(`❌ [VINTED] Error during scraping:`, error.message);
+      console.error(`❌ [VINTED] Error stack:`, error.stack);
+      
+      if (page) {
+        try {
+          const currentUrl = await page.url();
+          console.error(`❌ [VINTED] Current page URL: ${currentUrl}`);
+          
+          const title = await page.title();
+          console.error(`❌ [VINTED] Current page title: ${title}`);
+        } catch (debugError) {
+          console.error(`❌ [VINTED] Cannot get page debug info`);
+        }
+      }
+      
       throw error;
     } finally {
       if (page) {
@@ -97,6 +133,8 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
 
   async waitForContent(page) {
     try {
+      console.log(`🔍 [VINTED] Waiting for content selectors (30s timeout)...`);
+      
       // Wait for either items to appear or "no results" message
       await Promise.race([
         page.waitForSelector('.feed-grid__item', { timeout: 30000 }),
@@ -104,12 +142,17 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
         page.waitForSelector('.catalog-item', { timeout: 30000 }) // Fallback selector
       ]);
       
+      console.log(`✅ [VINTED] Content selectors found, waiting 2s for full load...`);
       // Additional wait to ensure all items are loaded
       await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log(`✅ [VINTED] Content wait completed`);
       
     } catch (error) {
-      console.warn(`⚠️ Timeout waiting for Vinted content, proceeding anyway`);
+      console.warn(`⚠️ [VINTED] Timeout waiting for content selectors, proceeding anyway`);
+      console.warn(`⚠️ [VINTED] Error: ${error.message}`);
+      console.log(`⏳ [VINTED] Final fallback wait (5s)...`);
       await new Promise(resolve => setTimeout(resolve, 5000)); // Final fallback
+      console.log(`✅ [VINTED] Fallback wait completed`);
     }
   }
 
