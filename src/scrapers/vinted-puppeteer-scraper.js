@@ -204,8 +204,11 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
     // Utiliser la méthode parent pour parser les résultats
     const results = await super.parseResults(html, searchTerm);
     
-    // Appliquer le filtrage de pertinence spécifique à Vinted
-    return this.filterRelevantResults(results, searchTerm);
+    // COMMENTÉ: Suppression du double filtrage qui bloquait le workflow
+    // Le filtrage se fait déjà dans scrape() ligne 101
+    // return this.filterRelevantResults(results, searchTerm);
+    
+    return results; // Retourner les résultats bruts, filtrage fait dans scrape()
   }
 
   extractPrice($item, $) {
