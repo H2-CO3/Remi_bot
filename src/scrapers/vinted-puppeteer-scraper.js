@@ -70,18 +70,22 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
       const url = this.buildSearchUrl(searchTerm);
       console.log(`📡 [VINTED] Navigating to URL: ${url}`);
       
-      // Navigation avec timeout adapté RPi
-      console.log(`⏳ [VINTED] Starting navigation (up to 2 minutes)...`);
+      // Navigation avec stratégie plus fiable
+      console.log(`⏳ [VINTED] Starting navigation with domcontentloaded...`);
       await page.goto(url, { 
-        waitUntil: 'networkidle2',
-        timeout: 120000 // 2 minutes pour RPi
+        waitUntil: 'domcontentloaded',
+        timeout: 60000 // 1 minute pour domcontentloaded
       });
-      console.log(`✅ [VINTED] Navigation completed successfully`);
+      console.log(`✅ [VINTED] DOM loaded, now waiting for cards...`);
       
-      // Attendre le contenu Vinted avec fallback
-      console.log(`⏳ [VINTED] Waiting for content to load...`);
-      await this.waitForContent(page);
-      console.log(`✅ [VINTED] Content loaded`);
+      // Attendre explicitement que les cartes apparaissent
+      console.log(`⏳ [VINTED] Waiting for feed cards to load...`);
+      try {
+        await page.waitForSelector('.feed-grid__item', { timeout: 60000 });
+        console.log(`✅ [VINTED] Cards found successfully`);
+      } catch (error) {
+        console.warn(`⚠️ [VINTED] Cards not found, proceeding anyway: ${error.message}`);
+      }
       
       // Récupérer et parser les résultats
       console.log(`📄 [VINTED] Getting page content...`);
