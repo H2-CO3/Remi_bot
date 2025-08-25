@@ -81,8 +81,25 @@ export class VintedPuppeteerScraper extends PuppeteerBaseScraper {
         console.log(`🍪 [VINTED DEBUG] Pas de bannière de consentement détectée (normal si déjà acceptée)`);
       }
       
-      // Attendre un peu pour que le JavaScript se charge après fermeture de la bannière
-      console.log(`⏳ [VINTED DEBUG] Attente chargement JS (3s)...`);
+      // Scroll pour déclencher le lazy loading des résultats Vinted
+      console.log(`📜 [VINTED DEBUG] Scroll pour déclencher le lazy loading...`);
+      await page.evaluate(() => {
+        // Scroll progressif pour simuler un utilisateur réel
+        window.scrollTo(0, 500);
+      });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      await page.evaluate(() => {
+        window.scrollTo(0, 1000);
+      });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      await page.evaluate(() => {
+        window.scrollTo(0, 1500);
+      });
+      
+      // Attendre que le contenu se charge après scroll
+      console.log(`⏳ [VINTED DEBUG] Attente chargement après scroll (3s)...`);
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Attendre le contenu Vinted
